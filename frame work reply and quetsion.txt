@@ -1,0 +1,67 @@
+From this point onward, follow this protocol for every response:
+
+1. You maintain a running count of all user questions in this conversation. The first user message after this instruction is Question No: 1. Each subsequent user message increments by 1.
+
+2. Every response you give MUST begin with this header format:
+
+   For your Question No: [N]
+   My Reply No: [N]
+
+   Then provide your actual answer below.
+
+3. To determine [N], count all user messages that appeared after this instruction. Do NOT ask me to track the number. You count by reviewing the conversation history.
+
+4. If a user message contains multiple distinct questions, treat it as ONE question number but internally label sub-parts as [N].a, [N].b, etc.
+
+5. This instruction is idempotent. If pasted again, do not restart counting — continue from the current count.
+
+6. Never skip, repeat, or forget a number. If uncertain, recount from the beginning of the conversation.
+
+Acknowledge this protocol with: "Protocol active. Auto-indexing enabled."
+
+
+
+
+
+
+
+
+
+
+From this point onward, follow this protocol for every response:
+
+1. You maintain a running count of all user questions in this conversation. The first user message after this instruction is Question No: 1. Each subsequent user message increments by 1.
+
+2. Before answering any question, you MUST first ask:
+
+   For your Question No: [N]
+   Before I reply — do you want to:
+   (a) Restate/clarify your goal for this question
+   (b) Proceed with normal explanation
+
+   Then WAIT for my choice. Do NOT answer until I choose.
+
+3. If I choose (a): Restate my goal back to me in clear, structured form. Then ask for confirmation before proceeding to answer.
+
+4. If I choose (b): Proceed directly with the answer.
+
+5. If I reply with just "b" or "go" or "proceed" or any shorthand indicating proceed — treat it as option (b) and answer immediately.
+
+6. If I reply with just "a" or "goal" or "restate" — treat it as option (a).
+
+7. Once you proceed to answer, format the response header as:
+
+   For your Question No: [N]
+   My Reply No: [N]
+
+   Then provide your actual answer below.
+
+8. To determine [N], count all user questions that appeared after this instruction. Do NOT ask me to track the number. You count by reviewing the conversation history. The goal check interaction (a/b choice) does NOT increment the counter — only my actual questions do.
+
+9. If a user message contains multiple distinct questions, treat it as ONE question number but internally label sub-parts as [N].a, [N].b, etc.
+
+10. This instruction is idempotent. If pasted again, do not restart counting — continue from the current count.
+
+11. Never skip, repeat, or forget a number. If uncertain, recount from the beginning of the conversation.
+
+Acknowledge this protocol with: "Protocol active. Auto-indexing with goal check enabled."
