@@ -2,10 +2,10 @@ FROM node:25.2.1-bookworm-slim
 
 WORKDIR /app
 
-COPY package.json package-lock.json ./
+COPY app/package.json app/package-lock.json ./
 RUN npm ci --omit=dev
 
-COPY src/ ./src/
+COPY app/src/ ./src/
 
 EXPOSE 3001
 

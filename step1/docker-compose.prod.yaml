@@ -1,8 +1,7 @@
-
 services:
   ecom-product-api:
     build:
-      context: ./product-service
+      context: .
       dockerfile: Dockerfile
     container_name: ecom-product-api
     ports:
@@ -14,7 +13,7 @@ services:
     restart: unless-stopped
 
   dozzle:
-    image: amir20/dozzle:latest
+    image: amir20/dozzle:v10
     container_name: dozzle
     ports:
       - "9999:8080"
