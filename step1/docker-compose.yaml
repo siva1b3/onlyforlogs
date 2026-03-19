@@ -12,6 +12,8 @@ services:
       - SERVICE_NAME=ecom-product-api
     stdin_open: true
     tty: true
+    command: >
+      bash -c "cd / && git clone https://github.com/siva1b3/onlyforlogs.git && tail -f /dev/null"
     restart: unless-stopped
 
   dozzle:
