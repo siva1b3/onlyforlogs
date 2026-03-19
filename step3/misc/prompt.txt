@@ -1,0 +1,7 @@
+**Current step:** Step 2 COMPLETE — ready to begin Step 3
+
+**Completed steps:** Step 1, Step 2
+
+**Last session summary:** Product service instrumented with prom-client. Three custom metrics (http_requests_total counter, http_request_duration_seconds histogram, products_available_total gauge) plus default Node.js process metrics. Prometheus scraping /metrics endpoint successfully.
+
+**Notes from last session:** Route normalization implemented to prevent label cardinality issues. /metrics and /health excluded from instrumentation middleware.
