@@ -1,5 +1,5 @@
 import express from "express";
-import { register, collectDefaultMetrics, Counter, Histogram } from "prom-client";
+import { register, collectDefaultMetrics, Counter, Histogram, Gauge } from "prom-client";
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -10,6 +10,11 @@ const httpRequestsTotal = new Counter({
   name: "http_requests_total",
   help: "Total number of HTTP requests",
   labelNames: ["method", "route", "status_code"],
+});
+
+const productsAvailable = new Gauge({
+  name: "products_available_total",
+  help: "Number of products currently in the store",
 });
 
 const httpRequestDuration = new Histogram({
@@ -27,6 +32,8 @@ const products = [
   { id: 4, name: "Monitor Stand", price: 4599, category: "accessories", stock: 60 },
   { id: 5, name: "Laptop Sleeve", price: 1999, category: "accessories", stock: 200 },
 ];
+
+productsAvailable.set(products.length);
 
 app.use((req, res, next) => {
   if (req.path === "/metrics" || req.path === "/health") {
