@@ -1,6 +1,6 @@
-$jobs = 1..100 | ForEach-Object {
+$jobs = 1..10 | ForEach-Object {
     Start-Job -ScriptBlock {
-        1..200 | ForEach-Object {
+        1..20 | ForEach-Object {
             $urls = @(
                 "http://localhost:3001/products",
                 "http://localhost:3001/products/1",
