@@ -1,3 +1,7 @@
+volumes:
+  grafana-data:
+    name: grafana-data
+
 services:
   ecom-product-api:
     build:
@@ -29,3 +33,18 @@ services:
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
     restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:12.3
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana-data:/var/lib/grafana
+    restart: unless-stopped
+    depends_on:
+      - prometheus
