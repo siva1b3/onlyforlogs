@@ -1,0 +1,9 @@
+## Current status
+
+**Current step:** Step 1 COMPLETE — ready for Step 2
+
+**Completed steps:** Step 1
+
+**Last session summary:** ecom-product-api running with Express 5, ES modules, hardcoded product data. Dozzle tailing stdout. Endpoints: GET /products, GET /products/:id, GET /health, 404 handling. Load tested with concurrent PowerShell jobs.
+
+**Notes from last session:** Windows host, PowerShell 5.1, no volumes, stateless containers, git as persistence. Project root is step1/ with app/ subdirectory. Using node:20-alpine, npm ci. Naming convention: ecom-{domain}-{type}.

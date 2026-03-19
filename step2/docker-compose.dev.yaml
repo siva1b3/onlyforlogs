@@ -1,0 +1,26 @@
+version: "3.8"
+
+services:
+  ecom-product-api:
+    image: node:25.3
+    container_name: ecom-product-api
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=development
+      - PORT=3001
+      - SERVICE_NAME=ecom-product-api
+    stdin_open: true
+    tty: true
+    command: >
+      bash -c "cd / && git clone https://github.com/siva1b3/onlyforlogs.git && tail -f /dev/null"
+    restart: unless-stopped
+
+  dozzle:
+    image: amir20/dozzle:v10
+    container_name: dozzle
+    ports:
+      - "9999:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    restart: unless-stopped

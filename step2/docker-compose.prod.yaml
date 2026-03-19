@@ -1,0 +1,22 @@
+services:
+  ecom-product-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ecom-product-api
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - SERVICE_NAME=ecom-product-api
+    restart: unless-stopped
+
+  dozzle:
+    image: amir20/dozzle:v10
+    container_name: dozzle
+    ports:
+      - "9999:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    restart: unless-stopped
