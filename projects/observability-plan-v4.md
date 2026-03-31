@@ -1,4 +1,4 @@
-# Observability Learning Plan v4 — Context Prompt
+# Observability Learning Plan v4.1 — Context Prompt
 
 > Paste this entire file at the start of any new conversation to resume exactly where you left off.
 > Update the **Current Status** section after every session.
@@ -57,9 +57,40 @@ This project was chosen because:
 
 ---
 
+## Docker image inventory (all pinned)
+
+Every image used in this plan, with the exact tag. All images are already pulled locally.
+
+| Image | Tag | Role | Introduced |
+|---|---|---|---|
+| `node` | `25.2.1-bookworm-slim` | Product service, Order service, Scheduler service | Step 1 |
+| `amir20/dozzle` | `v10` | Raw log tailing | Step 1 |
+| `grafana/k6` | `1.7.1` | Traffic simulator | Step 1 |
+| `prom/prometheus` | `v3.7.3` | Metrics storage | Step 2 |
+| `grafana/grafana` | `12.3` | Dashboards | Step 3 |
+| `otel/opentelemetry-collector-contrib` | `0.140.0` | Central ingestion pipeline | Step 5 |
+| `grafana/loki` | `3.6.1` | Log storage | Step 6 |
+| `grafana/tempo` | `2.10.3` | Trace storage | Step 7 |
+| `postgres` | `18-bookworm` | Relational database | Step 9 |
+| `prometheuscommunity/postgres-exporter` | `v0.19.1` | PG metrics exporter | Step 9 |
+| `redis` | `8.4-bookworm` | Cache | Step 10 |
+| `oliver006/redis_exporter` | `v1.82.0` | Redis metrics exporter | Step 10 |
+| `rabbitmq` | `4.2.1-management` | Message broker | Step 11 |
+| `python` | `3.14-slim-bookworm` | Python worker | Step 12 |
+| `nginx` | `alpine` | API gateway | Step 14 |
+| `nginx/nginx-prometheus-exporter` | `1.5.1` | nginx metrics exporter | Step 14 |
+| `prom/alertmanager` | `v0.31.1` | Alert routing | Step 16 |
+| `minio/minio` | `RELEASE.2025-09-07T16-13-09Z` | Object storage | Step 17 |
+| `getmeili/meilisearch` | `v1.26.0` | Search engine | Step 18 |
+| `golang` | `1.26.1` | Inventory service (build stage) | Step 19 |
+
+**Note:** `otel/opentelemetry-collector-contrib` (not the plain `opentelemetry-collector`) is required because the contrib distribution includes the Loki exporter, filelog receiver, and other connectors this plan uses.
+
+---
+
 ## Traffic simulator — k6
 
-k6 runs as a Docker container from Step 1 onward. It is not a separate step — it is infrastructure that evolves alongside the system.
+k6 runs as a Docker container (`grafana/k6:1.7.1`) from Step 1 onward. It is not a separate step — it is infrastructure that evolves alongside the system.
 
 **Why k6:**
 - Scripts are plain JavaScript — no new language
@@ -71,8 +102,8 @@ k6 runs as a Docker container from Step 1 onward. It is not a separate step — 
 - Step 1: exercises product service CRUD + reserve + error paths
 - Steps 9–10: updated for DB-backed and cache-backed responses
 - Steps 11–12: triggers message publishing and async processing
-- Steps 14–15: exercises order flow through API gateway
-- Steps 18–21: covers new services (MinIO, search, inventory, cron)
+- Steps 13–14: exercises order flow through API gateway
+- Steps 17–20: covers new services (MinIO, search, inventory, cron)
 
 Each step that adds new endpoints or services specifies what k6 scenarios are added or updated.
 
@@ -93,15 +124,15 @@ Not a learning step — a utility. Flip the switch whenever you need observable 
 
 ## Observability stack (final state — built incrementally)
 
-| Tool | Role |
-|---|---|
-| Dozzle | Raw container stdout tailing during development |
-| Prometheus | Metrics storage — scrape-based pull model |
-| Grafana | Unified dashboards — logs + traces + metrics |
-| OTel Collector | Central ingestion pipeline — receives from all services, routes to backends |
-| Loki | Log aggregation and storage — queryable via LogQL |
-| Tempo | Distributed trace storage — queryable via TraceQL |
-| Alertmanager | Active alert routing from Prometheus rules |
+| Tool | Image | Role |
+|---|---|---|
+| Dozzle | `amir20/dozzle:v10` | Raw container stdout tailing during development |
+| Prometheus | `prom/prometheus:v3.7.3` | Metrics storage — scrape-based pull model |
+| Grafana | `grafana/grafana:12.3` | Unified dashboards — logs + traces + metrics |
+| OTel Collector | `otel/opentelemetry-collector-contrib:0.140.0` | Central ingestion pipeline — receives from all services, routes to backends |
+| Loki | `grafana/loki:3.6.1` | Log aggregation and storage — queryable via LogQL |
+| Tempo | `grafana/tempo:2.10.3` | Distributed trace storage — queryable via TraceQL |
+| Alertmanager | `prom/alertmanager:v0.31.1` | Active alert routing from Prometheus rules |
 
 ---
 
@@ -110,7 +141,7 @@ Not a learning step — a utility. Flip the switch whenever you need observable 
 | Model | Example in this plan |
 |---|---|
 | OTel push (SDK in app) | Node.js, Python, Go services push via OTLP to OTel Collector |
-| Prometheus scrape via exporter sidecar | postgres-exporter, redis-exporter |
+| Prometheus scrape via exporter sidecar | `prometheuscommunity/postgres-exporter:v0.19.1`, `oliver006/redis_exporter:v1.82.0` |
 | Native Prometheus endpoint | RabbitMQ, MinIO, Meilisearch expose `/metrics` directly |
 
 ---
@@ -119,7 +150,7 @@ Not a learning step — a utility. Flip the switch whenever you need observable 
 
 Every step contains:
 - **New concept** — the one thing you learn
-- **Services** — what's added or changed
+- **Services** — what's added or changed (with exact image tag)
 - **k6 changes** — what traffic exercises the new concept
 - **What to test** — concrete verification procedure
 - **Break and debug** — break something, diagnose with current tools, feel the limitation
@@ -141,7 +172,13 @@ Three dedicated **Practice Steps** appear at milestones where your toolset reach
 
 **New concept:** Raw container log visibility — before instrumenting anything, see what the service outputs.
 
-**Services:** Product service (Node.js/Express), k6, Dozzle
+**Services:**
+
+| Service | Image |
+|---|---|
+| product-service | `node:25.2.1-bookworm-slim` |
+| k6 | `grafana/k6:1.7.1` |
+| dozzle | `amir20/dozzle:v10` |
 
 **Product service endpoints:**
 
@@ -171,17 +208,17 @@ Three dedicated **Practice Steps** appear at milestones where your toolset reach
 | `mixed_realistic` | 70% reads, 20% writes, 10% bad requests | Closest to real user behavior |
 
 **What to test in Dozzle:**
-1. Open Dozzle → see live stdout from product-service and k6 containers
+1. Open Dozzle (`http://localhost:9999`) → see live stdout from product-service and k6 containers
 2. Run `baseline` → watch request logs flow
 3. Run `error_gen` → spot 4xx errors in the stream
 4. Run `write_storm` → watch reserve calls deplete stock, 409s appear
 
 **Break and debug:**
 1. Run `mixed_realistic`. While traffic is flowing, `docker compose restart product-service`. Open Dozzle. Can you tell from the logs exactly when the service went down and when it came back? Can you see the k6 errors during the restart window?
-2. Run `error_gen`. Try to answer: which endpoint produces the most errors? You'll have to eyeball-scroll through Dozzle. Notice how painful this is — no search, no filter, no count. Remember this feeling. It's the exact problem Step 5 (Loki) solves.
+2. Run `error_gen`. Try to answer: which endpoint produces the most errors? You'll have to eyeball-scroll through Dozzle. Notice how painful this is — no search, no filter, no count. Remember this feeling. It's the exact problem Step 6 (Loki) solves.
 
 **What you CANNOT do yet:**
-- Search/filter logs (Step 5 — structured logging, Step 6 — Loki)
+- Search/filter logs (Step 4 — structured logging, Step 6 — Loki)
 - See request rate as a number (Step 2 — Prometheus)
 - Graph error rate over time (Step 3 — Grafana)
 - Trace a request lifecycle (Step 7 — Tempo)
@@ -192,7 +229,7 @@ Three dedicated **Practice Steps** appear at milestones where your toolset reach
 
 **New concept:** Metrics scrape model — time-series numerical data, pulled by Prometheus on a schedule.
 
-**Services:** + Prometheus
+**Services:** + `prom/prometheus:v3.7.3`
 
 **Changes to product service:**
 - Add `prom-client` library
@@ -209,7 +246,7 @@ Three dedicated **Practice Steps** appear at milestones where your toolset reach
 **k6 changes:** None. Existing traffic generates metrics immediately.
 
 **What to test:**
-1. Run `baseline` → open Prometheus UI (port 9090) → query `http_requests_total` → see counters climbing
+1. Run `baseline` → open Prometheus UI (`http://localhost:9090`) → query `http_requests_total` → see counters climbing
 2. Run `read_spike` → query `rate(http_requests_total[1m])` → see rate increase
 3. Run `error_gen` → query `http_requests_total{status=~"4.."}` → see error counters
 4. Enable `FAULT_ERROR_ENABLED=true`, run `mixed_realistic` → query `rate(http_requests_total{status=~"5.."}[1m])` → see 500 rate
@@ -229,7 +266,7 @@ Three dedicated **Practice Steps** appear at milestones where your toolset reach
 
 **New concept:** PromQL + visual dashboards + time-range analysis.
 
-**Services:** + Grafana
+**Services:** + `grafana/grafana:12.3`
 
 **Grafana config:**
 - Prometheus as data source (provisioned via YAML — no manual UI clicks)
@@ -248,7 +285,7 @@ Three dedicated **Practice Steps** appear at milestones where your toolset reach
 **k6 changes:** None. k6 scenarios become visually powerful here.
 
 **What to test:**
-1. Open dashboard, set time range to "Last 15 minutes"
+1. Open dashboard (`http://localhost:3000`), set time range to "Last 15 minutes"
 2. Run `baseline` → watch all panels update with steady traffic
 3. Run `read_spike` → request rate spikes, latency stays flat
 4. Enable `FAULT_LATENCY_ENABLED=true`, run `mixed_realistic` → p95 climbs while p50 stays normal
@@ -272,7 +309,7 @@ Three dedicated **Practice Steps** appear at milestones where your toolset reach
 2. Run `baseline` for 2 minutes, then switch to `read_spike` for 30 seconds, then back to `baseline`. Can you see the spike on the dashboard? Can you identify the exact 30-second window? Set the Grafana time range to zoom into that window. This teaches time-range navigation.
 
 **What you CANNOT do yet:**
-- Search logs by content or level (Step 5 — structured logging, Step 6 — Loki)
+- Search logs by content or level (Step 4 — structured logging, Step 6 — Loki)
 - Trace a single request end-to-end (Step 7 — Tempo)
 - Jump from dashboard error spike to the specific log that caused it (Step 8 — correlation)
 
@@ -352,7 +389,9 @@ Three dedicated **Practice Steps** appear at milestones where your toolset reach
 
 **New concept:** Central ingestion pipeline — a routing layer that receives telemetry from services and forwards it to backends. Decouples apps from storage.
 
-**Services:** + OTel Collector
+**Services:** + `otel/opentelemetry-collector-contrib:0.140.0`
+
+**Why contrib, not the base image:** The base `otel/opentelemetry-collector` lacks the Loki exporter, filelog receiver, and other connectors this plan needs. The contrib distribution bundles all community-maintained receivers, processors, and exporters.
 
 **Changes to product service:**
 - Add OTel SDK for logs (`@opentelemetry/sdk-logs`, `@opentelemetry/exporter-logs-otlp-grpc`)
@@ -384,7 +423,7 @@ Three dedicated **Practice Steps** appear at milestones where your toolset reach
 
 **New concept:** Log aggregation and querying — structured logs become searchable, filterable, and aggregatable via LogQL.
 
-**Services:** + Loki
+**Services:** + `grafana/loki:3.6.1`
 
 **OTel Collector config update:**
 - Replace `logging` exporter with `loki` exporter (HTTP push to Loki)
@@ -413,7 +452,7 @@ Three dedicated **Practice Steps** appear at milestones where your toolset reach
 **Break and debug:**
 1. Run `mixed_realistic` with `FAULT_ERROR_ENABLED=true` for 3 minutes. Now answer these questions using ONLY LogQL:
    - How many error logs in the last 3 minutes? → `count_over_time({service_name="product-service", level="error"}[3m])`
-   - Which endpoint produces the most errors? → `| json | line_format "{{.path}}"` then visually scan, or use `sum by` with parsed fields
+   - Which endpoint produces the most errors? → `| json | line_format "{{.path}}"` then scan, or use `sum by` with parsed fields
    - What is the most common error message? → `| json | error != ""` then scan
    - At what time did error rate peak? → `sum(count_over_time({service_name="product-service", level="error"}[30s])) by (level)` as a graph
 2. Remember Step 1's break-and-debug: "try to find all 404s in the last 5 minutes" was impossible in Dozzle. Do it now in Loki: `{service_name="product-service"} | json | status = 404`. Instant. Feel the difference.
@@ -432,7 +471,7 @@ Three dedicated **Practice Steps** appear at milestones where your toolset reach
 
 **New concept:** Distributed traces — spans, trace ID, span tree view.
 
-**Services:** + Tempo
+**Services:** + `grafana/tempo:2.10.3`
 
 **Changes to product service:**
 - Add OTel tracing SDK (`@opentelemetry/sdk-trace-node`, `@opentelemetry/exporter-trace-otlp-grpc`)
@@ -572,7 +611,12 @@ Three dedicated **Practice Steps** appear at milestones where your toolset reach
 
 **New concept:** Exporter sidecar pattern — a dedicated container that queries an infrastructure component and exposes metrics for Prometheus. Second ingestion model.
 
-**Services:** + PostgreSQL, + postgres-exporter
+**Services:**
+
+| Service | Image |
+|---|---|
+| postgresql | `postgres:18-bookworm` |
+| postgres-exporter | `prometheuscommunity/postgres-exporter:v0.19.1` |
 
 **Changes to product service:**
 - Replace in-memory data store with PostgreSQL (`products` table)
@@ -632,7 +676,12 @@ CREATE TABLE products (
 
 **New concept:** Cache-layer observability — watching two signals (cache hit/miss and DB query rate) relate to each other in real time.
 
-**Services:** + Redis, + redis-exporter
+**Services:**
+
+| Service | Image |
+|---|---|
+| redis | `redis:8.4-bookworm` |
+| redis-exporter | `oliver006/redis_exporter:v1.82.0` |
 
 **Changes to product service:**
 - `GET /products` and `GET /products/:id` check Redis first (60s TTL), fallback to PostgreSQL
@@ -686,7 +735,7 @@ CREATE TABLE products (
 
 **New concept:** Native Prometheus endpoint — third ingestion model. Queue depth as a leading indicator signal.
 
-**Services:** + RabbitMQ (with management plugin)
+**Services:** + `rabbitmq:4.2.1-management`
 
 **Changes to product service:**
 - On every `GET /products/:id`, publish `product.viewed` event to RabbitMQ
@@ -694,7 +743,7 @@ CREATE TABLE products (
 - No consumer yet — messages accumulate in queue (consumer in Step 12)
 
 **RabbitMQ setup:**
-- Management plugin enabled (UI + `/metrics` endpoint)
+- Management plugin enabled (UI on port 15672, `/metrics` on port 15692)
 - Queue: `product.viewed`
 - Exchange: `ecommerce.events` (topic exchange)
 - Native Prometheus metrics at `http://rabbitmq:15692/metrics` — no exporter sidecar
@@ -716,8 +765,9 @@ CREATE TABLE products (
 **What to test:**
 1. Run `baseline` → queue depth grows continuously (no consumer)
 2. Run `read_spike` → publish rate spikes, queue grows faster
-3. Tempo → `GET /products/:id` trace now includes RabbitMQ publish span
-4. Stop k6 → queue depth plateaus
+3. Open RabbitMQ management UI (`http://localhost:15672`) → see queue filling
+4. Tempo → `GET /products/:id` trace now includes RabbitMQ publish span
+5. Stop k6 → queue depth plateaus
 
 **Break and debug:**
 1. Run `read_spike` for 1 minute. Stop k6. Check queue depth in Grafana — note the number. Run `read_spike` again for 1 minute. Queue depth doubles. This is a **leading indicator**: the queue tells you work is accumulating. In production, a growing queue without a consumer means something is broken downstream. You can see the problem building before it causes user-visible failures.
@@ -729,7 +779,7 @@ CREATE TABLE products (
 
 **New concept:** Cross-service, cross-language distributed trace via W3C TraceContext propagation.
 
-**Services:** + Python worker (asyncio + aio-pika)
+**Services:** + Python worker using `python:3.14-slim-bookworm`
 
 **Python worker behavior:**
 - Consumes `product.viewed` queue
@@ -768,18 +818,14 @@ CREATE TABLE products (
 5. Tempo service map → `[product-service] → [rabbitmq] → [python-worker] → [postgresql]`
 
 **Break and debug:**
-1. `docker compose stop python-worker`. Run `order_flow` for 2 minutes. Watch queue depth grow in Grafana. Check consumer count: 0. Now restart the worker. Watch queue drain. How long did it take to process the backlog? Is the drain rate the same as the steady-state rate, or is the worker processing faster (batch effect)? Answer using only Grafana metrics.
+1. `docker compose stop python-worker`. Run `baseline` for 2 minutes. Watch queue depth grow in Grafana. Check consumer count: 0. Now restart the worker. Watch queue drain. How long did it take to process the backlog? Is the drain rate the same as the steady-state rate, or is the worker processing faster (batch effect)? Answer using only Grafana metrics.
 2. Run `baseline`. Find a cross-service trace in Tempo. Look at the time gap between the product-service publish span and the python-worker consume span. This gap is the queue latency — time the message sat in RabbitMQ waiting. Run `read_spike` and check again — is the gap larger? It should be, because the worker can't keep up with the publish rate.
 
 **Milestone:** First trace crossing service boundaries, languages, and transport protocols.
 
 ---
 
-### Phase 6 — Multi-service (Steps 13–15)
-
----
-
-#### Step 13 — Practice Step B (skipped — renumbered, see below)
+### Phase 6 — Multi-service (Steps 13–14)
 
 ---
 
@@ -787,7 +833,7 @@ CREATE TABLE products (
 
 **New concept:** Multi-service synchronous trace + service dependency map.
 
-**Services:** + Order service (Node.js/Express)
+**Services:** + Order service using `node:25.2.1-bookworm-slim`
 
 **Order service endpoints:**
 
@@ -849,7 +895,12 @@ CREATE TABLE orders (
 
 **New concept:** Edge observability — client-facing metrics independent of service self-reporting.
 
-**Services:** + nginx, + nginx-prometheus-exporter
+**Services:**
+
+| Service | Image |
+|---|---|
+| nginx | `nginx:alpine` |
+| nginx-prometheus-exporter | `nginx/nginx-prometheus-exporter:1.5.1` |
 
 **nginx config:**
 - Port 80 — single entry point
@@ -862,7 +913,7 @@ CREATE TABLE orders (
 - Loki label: `{service_name="nginx"}`
 
 **nginx-prometheus-exporter:**
-- nginx exposes `stub_status`
+- nginx exposes `stub_status` endpoint
 - Exporter translates to Prometheus metrics
 
 **Prometheus config update:**
@@ -991,7 +1042,7 @@ CREATE TABLE orders (
 
 **New concept:** Alert routing, grouping, inhibition, silencing — turning evaluations into actionable notifications.
 
-**Services:** + Alertmanager
+**Services:** + `prom/alertmanager:v0.31.1`
 
 **Alertmanager config:**
 - Receives firing alerts from Prometheus
@@ -1019,7 +1070,7 @@ CREATE TABLE orders (
 3. Inhibition: stop worker AND heavy traffic → WorkerDown fires → RabbitMQQueueBacklog suppressed
 
 **Break and debug:**
-1. Stop python-worker. Run `order_flow` AND `trigger_high_error_rate`. Multiple alerts fire. Open Alertmanager UI. Observe:
+1. Stop python-worker. Run `order_flow` AND `trigger_high_error_rate`. Multiple alerts fire. Open Alertmanager UI (`http://localhost:9093`). Observe:
    - WorkerDown and HighErrorRate fire as separate alerts
    - RabbitMQQueueBacklog is inhibited (suppressed) because WorkerDown is firing
    - Without inhibition, you'd get three alerts for one root cause (worker is down)
@@ -1039,16 +1090,19 @@ CREATE TABLE orders (
 Create a small shell script (`chaos.sh`) that randomly picks ONE action from this menu:
 
 ```bash
+#!/bin/bash
 ACTIONS=(
   "docker compose stop python-worker"
   "docker compose restart redis"
   "docker compose restart postgresql"
-  "docker compose exec product-service sh -c 'export FAULT_ERROR_ENABLED=true'"
-  "docker compose exec product-service sh -c 'export FAULT_LATENCY_ENABLED=true'"
   "docker compose stop order-service"
 )
-# Pick random action, execute it, log which one to /tmp/chaos-action.log
+SELECTED=${ACTIONS[$RANDOM % ${#ACTIONS[@]}]}
+echo "$(date): $SELECTED" >> /tmp/chaos-action.log
+eval $SELECTED
 ```
+
+Note: fault injection via env var requires a container restart to take effect. The chaos script uses service stop/restart actions which are immediately observable.
 
 **Exercise C1 — Single unknown failure:**
 1. Start all services. Run `order_flow` + `baseline` + `mixed_realistic` simultaneously.
@@ -1073,7 +1127,7 @@ ACTIONS=(
 4. This simulates production reality: multiple things go wrong at once.
 
 **Exercise C4 — Recovery verification:**
-1. After identifying the root cause in C1, fix it (restart the stopped service, disable fault injection).
+1. After identifying the root cause in C1, fix it (restart the stopped service).
 2. Verify recovery using observability:
    - Alert resolves in Alertmanager
    - Metrics return to baseline in Grafana
@@ -1093,7 +1147,7 @@ ACTIONS=(
 
 **New concept:** Object storage observability + another native Prometheus endpoint.
 
-**Services:** + MinIO
+**Services:** + `minio/minio:RELEASE.2025-09-07T16-13-09Z`
 
 **Changes to order service:**
 - After `order.placed` processed and status = `confirmed`, generate JSON invoice → upload to MinIO bucket `ecommerce-invoices`
@@ -1105,6 +1159,7 @@ ACTIONS=(
 - S3-compatible object storage
 - Native Prometheus endpoint: `/minio/v2/metrics/cluster`
 - Bucket: `ecommerce-invoices` (created on startup)
+- Console UI on port 9001
 
 **Prometheus config update:**
 - Add scrape target: MinIO metrics endpoint
@@ -1121,7 +1176,7 @@ ACTIONS=(
 **k6 changes:** None. `order_flow` creates orders → invoices generated automatically.
 
 **What to test:**
-1. Run `order_flow` → MinIO console shows invoices appearing
+1. Run `order_flow` → MinIO console (`http://localhost:9001`) shows invoices appearing
 2. Grafana: S3 PUT rate correlates 1:1 with order confirmation rate
 3. Tempo: order trace now includes MinIO upload span
 
@@ -1135,7 +1190,7 @@ ACTIONS=(
 
 **New concept:** Search engine observability — search latency, indexing latency, index drift detection.
 
-**Services:** + Meilisearch
+**Services:** + `getmeili/meilisearch:v1.26.0`
 
 **Changes to product service:**
 - `GET /products?search=keyword` routes to Meilisearch instead of PostgreSQL
@@ -1147,6 +1202,7 @@ ACTIONS=(
 **Meilisearch setup:**
 - Native Prometheus endpoint (`--experimental-enable-metrics`)
 - Index: `products`
+- UI available on port 7700
 
 **Prometheus config update:**
 - Add scrape target: Meilisearch metrics endpoint
@@ -1185,7 +1241,12 @@ ACTIONS=(
 
 **New concept:** OTel language independence — Node.js, Python, Go all in one pipeline.
 
-**Services:** + Inventory service (Go)
+**Services:** + Inventory service (multi-stage Docker build)
+
+**Build strategy:**
+- Build stage: `golang:1.26.1` — compile the Go binary
+- Runtime stage: `alpine` or `scratch` — final image is ~15 MB, contains only the binary
+- This is standard Go Docker practice: build heavy, run light
 
 **Inventory service endpoints:**
 
@@ -1242,7 +1303,7 @@ ACTIONS=(
 
 **New concept:** Job-based observability — absence of success as the alert signal.
 
-**Services:** + Scheduler service (Node.js / `node-cron`)
+**Services:** + Scheduler service using `node:25.2.1-bookworm-slim`
 
 **Three jobs:**
 
@@ -1321,7 +1382,18 @@ ACTIONS=(
 
 **New concept:** No new concept. Full-system validation.
 
-**Services:** All 22 containers running.
+**Services:** All containers running.
+
+**Container count at this point:**
+
+| Category | Containers | Count |
+|---|---|---|
+| Application services | product-service, order-service, inventory-service, scheduler-service, python-worker | 5 |
+| Infrastructure | postgresql, redis, rabbitmq, minio, meilisearch, nginx | 6 |
+| Observability | prometheus, alertmanager, grafana, otel-collector, loki, tempo, dozzle | 7 |
+| Exporters | postgres-exporter, redis-exporter, nginx-prometheus-exporter | 3 |
+| Traffic | k6 | 1 |
+| **Total** | | **22** |
 
 **What to do:**
 1. Start all services.
@@ -1338,7 +1410,7 @@ ACTIONS=(
 | Correlation | Click from dashboard error spike → Loki error log → trace_id → Tempo span tree |
 | Exporter pattern | postgres-exporter and redis-exporter metrics appear in Grafana |
 | Native endpoint | RabbitMQ, MinIO, Meilisearch metrics appear in Grafana |
-| Cross-service trace | Single trace: nginx → order-service → inventory-service(Go) + product-service → rabbitmq → python-worker |
+| Cross-service trace | Single trace: nginx → order-service → inventory-service (Go) + product-service → rabbitmq → python-worker |
 | Edge observability | nginx metrics match service metrics, upstream_response_time visible |
 | Alert rules | Prometheus rules page shows all rules evaluating |
 | Alert routing | Trigger a rule → Alertmanager receives → webhook logs → Grafana annotation |
@@ -1354,30 +1426,30 @@ ACTIONS=(
 
 ## Final service inventory (Step 22 complete state)
 
-| Service | Language/Tech | Role |
+| Service | Image | Role |
 |---|---|---|
-| Product service | Node.js / Express | Products CRUD, search via Meilisearch |
-| Order service | Node.js / Express | Order creation, inventory reservation, invoice upload |
-| Inventory service | Go | Stock levels, reservation management |
-| Scheduler service | Node.js / node-cron | Background jobs — summary, sync, DLQ requeue |
-| Python worker | Python / aio-pika | Async order/product event processor |
-| k6 | grafana/k6 | Traffic simulator |
-| PostgreSQL | postgres:16 | Primary relational store |
-| Redis | redis:8 | Product listing cache |
-| RabbitMQ | rabbitmq:management | AMQP message broker |
-| MinIO | minio | S3-compatible invoice storage |
-| Meilisearch | meilisearch | Full-text product search |
-| nginx | nginx:alpine | API gateway, reverse proxy |
-| Prometheus | prom/prometheus | Metrics storage and alert evaluation |
-| Alertmanager | prom/alertmanager | Alert routing and grouping |
-| Grafana | grafana/grafana | Unified dashboards |
-| OTel Collector | otel/opentelemetry-collector | Central signal ingestion and routing |
-| Loki | grafana/loki | Log storage |
-| Tempo | grafana/tempo | Trace storage |
-| Dozzle | amir20/dozzle | Raw stdout tailing (dev only) |
-| postgres-exporter | — | PG metrics for Prometheus |
-| redis-exporter | — | Redis metrics for Prometheus |
-| nginx-prometheus-exporter | — | nginx metrics for Prometheus |
+| Product service | `node:25.2.1-bookworm-slim` | Products CRUD, search via Meilisearch |
+| Order service | `node:25.2.1-bookworm-slim` | Order creation, inventory reservation, invoice upload |
+| Inventory service | `golang:1.26.1` (build) → `alpine` (run) | Stock levels, reservation management |
+| Scheduler service | `node:25.2.1-bookworm-slim` | Background jobs — summary, sync, DLQ requeue |
+| Python worker | `python:3.14-slim-bookworm` | Async order/product event processor |
+| k6 | `grafana/k6:1.7.1` | Traffic simulator |
+| PostgreSQL | `postgres:18-bookworm` | Primary relational store |
+| Redis | `redis:8.4-bookworm` | Product listing cache |
+| RabbitMQ | `rabbitmq:4.2.1-management` | AMQP message broker |
+| MinIO | `minio/minio:RELEASE.2025-09-07T16-13-09Z` | S3-compatible invoice storage |
+| Meilisearch | `getmeili/meilisearch:v1.26.0` | Full-text product search |
+| nginx | `nginx:alpine` | API gateway, reverse proxy |
+| Prometheus | `prom/prometheus:v3.7.3` | Metrics storage and alert evaluation |
+| Alertmanager | `prom/alertmanager:v0.31.1` | Alert routing and grouping |
+| Grafana | `grafana/grafana:12.3` | Unified dashboards |
+| OTel Collector | `otel/opentelemetry-collector-contrib:0.140.0` | Central signal ingestion and routing |
+| Loki | `grafana/loki:3.6.1` | Log storage |
+| Tempo | `grafana/tempo:2.10.3` | Trace storage |
+| Dozzle | `amir20/dozzle:v10` | Raw stdout tailing (dev only) |
+| postgres-exporter | `prometheuscommunity/postgres-exporter:v0.19.1` | PG metrics for Prometheus |
+| redis-exporter | `oliver006/redis_exporter:v1.82.0` | Redis metrics for Prometheus |
+| nginx-prometheus-exporter | `nginx/nginx-prometheus-exporter:1.5.1` | nginx metrics for Prometheus |
 
 ---
 
@@ -1421,7 +1493,7 @@ When I start a new session with this file:
 2. Do not re-explain completed steps unless I ask
 3. Do not jump ahead of the current step
 4. Each step produces:
-   - `docker-compose.yml` (full file, all services to that point)
+   - `docker-compose.yml` (full file, all services to that point, with pinned image tags)
    - All application source files needed for that step
    - Any config files (prometheus.yml, otel-collector.yml, etc.)
    - k6 test scripts (new or updated if the step requires it)
@@ -1439,7 +1511,7 @@ When I start a new session with this file:
 
 **Completed steps:** None
 
-**Last session summary:** Plan v4 finalized. 22 steps. Break-and-debug in every step. Three practice steps (★A, ★B, ★C). OTel Collector split into own step. DLQ observability added. Final integration test added.
+**Last session summary:** Plan v4.1 finalized. All Docker images pinned to locally available versions. Bug fixes applied.
 
 **Notes from last session:** None
 
