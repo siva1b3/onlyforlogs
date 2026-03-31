@@ -1,0 +1,14 @@
+name: ecommerce-network-placeholder
+
+networks:
+  ecommerce-network:
+    name: ecommerce-network
+    driver: bridge
+
+services:
+  gateway:
+    image: nginx:alpine
+    container_name: gateway
+    restart: unless-stopped
+    networks:
+      - ecommerce-network

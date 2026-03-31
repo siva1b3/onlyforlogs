@@ -1,0 +1,44 @@
+name: ecommerce-dev
+
+services:
+
+  product-service:
+    image: node:25.3
+    container_name: product-service
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      - FAULT_LATENCY_ENABLED=false
+      - FAULT_ERROR_ENABLED=false
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+    command: >
+      bash -c "
+        apt-get update -qq && 
+        cd /app &&
+        git clone https://github.com/siva1b3/onlyforlogs.git  && tail -f /dev/null
+      "
+    working_dir: /app
+    networks:
+      - ecommerce-network
+
+  k6:
+    image: grafana/k6:1.7.1
+    container_name: k6
+    profiles:
+      - load
+    environment:
+      - BASE_URL=http://product-service:3000
+    volumes:
+      - ./k6/scripts:/scripts
+    networks:
+      - ecommerce-network
+    depends_on:
+      - product-service
+
+networks:
+  ecommerce-network:
+    external: true
